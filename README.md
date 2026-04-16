@@ -135,6 +135,6 @@ Distribuido bajo licencia MIT. Ver archivo `LICENSE` para más información.
 ---
 
 **ZeroWaste Campus** – *Datos que alimentan el cambio*  
-Desarrollado por Michael Yesid Baquero Gómez  
+Desarrollado por Michael Yesid Baquero Gómez, Angie Paola Montero Tique y Elquin Retavisca Linares\
 Fundación Universitaria Cafam  
 Bogotá, Colombia – 2025
