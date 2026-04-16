@@ -33,7 +33,6 @@ Columnas consideradas:
 """
 
 import pandas as pd
-import numpy as np
 
 # =====================================================
 # FUNCIÓN: handle_outliers
