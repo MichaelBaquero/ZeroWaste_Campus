@@ -1,0 +1,7 @@
+# Credenciales de Json
+/Data_connection/creds.json
+# Ignorar archivos compilados de Python
+/__pycache__/
+/Cleaning_data/__pycache__/
+/Data_connection/__pycache__/
+/Visual_page/__pycache__/
