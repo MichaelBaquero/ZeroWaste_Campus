@@ -26,11 +26,11 @@ Estructura del módulo:
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from Visual_page.components import header_section, kpi_card, footer
+from Frontend.components import header_section, kpi_card, footer
 
 # --- Carga opcional del tema visual ---
 try:
-    from Visual_page.theme_config import load_theme
+    from Frontend.theme_config import load_theme
     HAVE_THEME = True
 except Exception:
     HAVE_THEME = False

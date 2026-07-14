@@ -21,9 +21,9 @@ Librerías utilizadas:
 """
 
 import streamlit as st
-from Data_connection.initial_read import initial_read as read_data
-from Data_connection.cleaning_data import cleaner_data as clean_data
-from Visual_page.dashboard import run_dashboard
+from Backend.initial_read import initial_read as read_data
+from Backend.cleaning_data import cleaner_data as clean_data
+from Frontend.dashboard import run_dashboard
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(

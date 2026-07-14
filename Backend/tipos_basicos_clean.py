@@ -1,34 +1,31 @@
-"""
-Módulo: boolean_clean.py
-Autor: Equipo ZeroWaste Campus
-Descripción:
-    Este módulo se encarga de limpiar, normalizar y corregir inconsistencias
-    en las columnas booleanas del conjunto de datos principal, especialmente
-    aquellas relacionadas con la variable que indica la presencia o ausencia 
-    de desperdicio de alimentos.
-
-    Se implementan funciones que garantizan coherencia entre los valores 
-    booleanos y las cantidades registradas de desperdicio.
-
-Dependencias:
-    - pandas
-    - re
-    - unidecode
-
-Funciones principales:
-    - clean_booleans(df, col_bool="hubo_desperdicio_de_alimentos"):
-        Limpia la columna booleana estándar, normalizando los valores
-        textuales ("si", "no") a valores booleanos (True/False).
-
-    - corregir_inconsistencias(df):
-        Aplica reglas de coherencia entre la columna booleana y la cantidad 
-        de desperdicio registrada. Convierte los valores a formato numérico (1/0).
-"""
-
 import pandas as pd
 import re
 from unidecode import unidecode
 
+# =====================================================
+# FUNCIÓN: clean_dates
+# =====================================================
+def clean_dates(df, col_fecha="fecha_de_registro"):
+    """
+    Limpia y normaliza una columna de fechas dentro de un DataFrame.
+
+    Parámetros:
+        df (pd.DataFrame): DataFrame que contiene los datos originales.
+        col_fecha (str): Nombre de la columna de fecha a procesar.
+                         Por defecto: 'fecha_de_registro'.
+
+    Proceso:
+        - Verifica que la columna exista en el DataFrame.
+        - Convierte los valores a tipo datetime con el parámetro `dayfirst=True`
+          para asegurar compatibilidad con el formato latinoamericano (dd/mm/yyyy).
+        - Utiliza `errors="coerce"` para asignar NaT a valores no convertibles.
+
+    Retorna:
+        pd.DataFrame: DataFrame con la columna de fechas convertida a formato datetime.
+    """
+    if col_fecha in df.columns:
+        df[col_fecha] = pd.to_datetime(df[col_fecha], dayfirst=True, errors="coerce")
+    return df
 
 # =====================================================
 # FUNCIÓN: clean_booleans

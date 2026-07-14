@@ -39,15 +39,15 @@ import re
 from unidecode import unidecode
 
 # --- Importación de submódulos de limpieza ---
-from Cleaning_data.dates_clean import clean_dates as date_cl
-from Cleaning_data.boolean_clean import clean_booleans as bool_cl
-from Cleaning_data.boolean_clean import corregir_inconsistencias as bool_corr
-from Cleaning_data.Nums_clean import clean_integers as int_cl
-from Cleaning_data.Nums_clean import clean_floats as float_cl
-from Cleaning_data.Nums_clean import fill_missing_with_medians_and_keep_negatives as fmmn
-from Cleaning_data.outliers_clean import handle_outliers as outlier_cl
-from Cleaning_data.str_clean import clean_text
-from Cleaning_data.str_clean import clean_categorical_options
+from Cleaning_data_eliminar.dates_clean import clean_dates as date_cl
+from Cleaning_data_eliminar.boolean_clean import clean_booleans as bool_cl
+from Cleaning_data_eliminar.boolean_clean import corregir_inconsistencias as bool_corr
+from Cleaning_data_eliminar.Nums_clean import clean_integers as int_cl
+from Cleaning_data_eliminar.Nums_clean import clean_floats as float_cl
+from Cleaning_data_eliminar.Nums_clean import fill_missing_with_medians_and_keep_negatives as fmmn
+from Cleaning_data_eliminar.outliers_clean import handle_outliers as outlier_cl
+from Backend.str_clean import clean_text
+from Backend.str_clean import clean_categorical_options
 
 
 # =====================================================
