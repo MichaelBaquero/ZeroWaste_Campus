@@ -1,20 +1,21 @@
 # Estructura del Google Form — ZeroWaste Campus
 
-Este documento define **exactamente** cómo debe quedar configurado el Google Form
-para que el pipeline (`initial_read.py` → `Cleaning_data/*`) lo pueda leer sin
-tocar código adicional.
+Este documento define la estructura que debe tener el Google Form para que el
+pipeline de limpieza (`Backend/initial_read.py` → `Backend/*_clean.py`) pueda
+procesarlo sin requerir cambios en el código.
 
-⚠️ **Regla de oro:** el texto de cada pregunta debe copiarse **tal cual** (mayúsculas,
-tildes, signos `¿?`) porque Google Forms usa ese texto como encabezado de columna
-en el Sheet, y `initial_read.py` valida esos encabezados exactamente.
+⚠️ **Regla de oro:** el texto de cada pregunta debe copiarse de forma exacta
+(mayúsculas, tildes, signos `¿?`), ya que Google Forms utiliza ese texto como
+encabezado de columna en el Sheet, y `Backend/initial_read.py` valida esos
+encabezados de forma exacta.
 
 ---
 
 ## Configuración general del Form
 
-- Activa **"Recopilar direcciones de correo electrónico"** → NO (no lo necesitamos)
-- Activa **"Limitar a 1 respuesta"** → opcional, según si quieres 1 registro por persona/día
-- La columna `Marca temporal` la agrega Google automáticamente — no la crees tú, ya está contemplada en el pipeline.
+- La opción **"Recopilar direcciones de correo electrónico"** debe permanecer desactivada.
+- La opción **"Limitar a 1 respuesta"** es opcional, según si se desea 1 registro por persona/día.
+- La columna `Marca temporal` la agrega Google Forms automáticamente; no debe crearse manualmente, ya está contemplada en el pipeline.
 
 ---
 
@@ -53,13 +54,13 @@ en el Sheet, y `initial_read.py` valida esos encabezados exactamente.
   - Postres / Dulces
   - Bebidas
   - No aplica / No hubo desperdicio
-- 💡 Al ser multi-selección, Google Sheets guardará las opciones elegidas separadas por coma en una sola celda (ej: `"Frutas, Lácteos"`). Esto se maneja en `Cleaning_data/str_clean.py`.
+- Nota técnica: al ser multi-selección, Google Sheets guarda las opciones elegidas separadas por coma en una sola celda (por ejemplo, `"Frutas, Lácteos"`). Este formato se procesa en `Backend/str_clean.py`.
 
 ### 6. Cantidad aproximada desperdiciada (Kg)
 - **Tipo:** Respuesta corta
 - **Obligatoria:** Sí
 - **Validación de respuesta:** Número → Mayor o igual que → `0`
-- **Texto de ayuda (debajo de la pregunta):** "Usa punto (.) para decimales. Ejemplo: 2.5. Si no hubo desperdicio, escribe 0."
+- **Texto de ayuda (debajo de la pregunta):** "Usar punto (.) para decimales. Ejemplo: 2.5. Si no hubo desperdicio, registrar 0."
 
 ### 7. Principal motivo de desperdicio
 - **Tipo:** Selección múltiple (una sola opción)
@@ -88,12 +89,13 @@ en el Sheet, y `initial_read.py` valida esos encabezados exactamente.
 ### 9. Comentarios o notas del día
 - **Tipo:** Párrafo
 - **Obligatoria:** No
-- Nota técnica: cuando el Form no tiene respuesta aquí, Google Sheets guarda la celda como texto vacío `""`, no como `NaN`. Eso es justo lo que `clean_text()` ya espera manejar.
+- Nota técnica: cuando el Form no recibe respuesta en este campo, Google Sheets guarda la celda como texto vacío (`""`), no como valor nulo. Este comportamiento es compatible con lo que espera `clean_text()`.
 
 ---
 
-## Vincular el Form a un Sheet
+## Vinculación del Form con un Sheet
 
-En **Respuestas → ícono de Sheets (verde) → Crear hoja de cálculo**, vincula el
-Form a un Sheet nuevo. Ese Sheet es tu fuente de datos, y su ID (visible en la URL)
-es lo que necesitarás para el siguiente documento: [`02_SETUP.md`](./02_SETUP.md).
+Desde **Respuestas → ícono de Sheets (verde) → Crear hoja de cálculo**, el Form
+debe vincularse a un Sheet nuevo. Ese Sheet constituye la fuente de datos del
+proyecto, y su identificador (visible en la URL) es requerido en el siguiente
+documento: [`02_SETUP.md`](./02_SETUP.md).

@@ -1,70 +1,76 @@
 # SETUP — ZeroWaste Campus
 
-Guía para conectar el proyecto una vez que ya existen el Google Form y su Sheet
-vinculado (ver [`01_ESTRUCTURA_GOOGLE_FORM.md`](./01_ESTRUCTURA_GOOGLE_FORM.md)).
-Cubre credenciales, permisos y arranque de la app.
+Esta guía describe el proceso de conexión del proyecto una vez que existen el
+Google Form y su Sheet vinculado (ver [`01_ESTRUCTURA_GOOGLE_FORM.md`](./01_ESTRUCTURA_GOOGLE_FORM.md)).
+Cubre la creación de credenciales, la configuración de permisos y el arranque
+de la aplicación.
 
 ---
 
-## 1. Crear las credenciales (`creds.json`)
+## 1. Creación de las credenciales (`creds.json`)
 
-El proyecto usa una **cuenta de servicio** de Google Cloud (no tu cuenta personal)
-para leer el Sheet vía API. Pasos:
+El proyecto utiliza una **cuenta de servicio** de Google Cloud (independiente
+de cualquier cuenta personal) para leer el Sheet a través de la API. Pasos:
 
-1. Ve a [console.cloud.google.com](https://console.cloud.google.com/) y crea un
-   proyecto nuevo (o usa uno existente).
-2. En el buscador superior, activa estas dos APIs (una por una):
+1. Acceder a [console.cloud.google.com](https://console.cloud.google.com/) y crear un proyecto nuevo (o utilizar uno existente).
+2. Activar las siguientes APIs:
    - **Google Sheets API**
    - **Google Drive API**
-3. Ve a **IAM y administración → Cuentas de servicio → Crear cuenta de servicio**.
-   - Nombre: el que quieras (ej. `zerowaste-reader`)
-   - No necesitas asignarle ningún rol de proyecto — el acceso al Sheet se da en el paso 2.
-4. Dentro de la cuenta de servicio creada, ve a la pestaña **Claves → Agregar clave
-   → Crear clave nueva → JSON**. Esto descarga un archivo `.json`.
-5. Renombra ese archivo a **`creds.json`** y colócalo en:
+3. Ir a **IAM y administración → Cuentas de servicio → Crear cuenta de servicio**.
+   - El nombre puede definirse libremente (por ejemplo, `zerowaste-reader`).
+   - No es necesario asignar ningún rol de proyecto; el acceso al Sheet se otorga en el paso 2 de la siguiente sección.
+4. Dentro de la cuenta de servicio creada, ir a la pestaña **Claves → Agregar clave → Crear clave nueva → JSON**. Esto descarga un archivo `.json`.
+5. Renombrar ese archivo a **`creds.json`** y ubicarlo en:
    ```
-   Data_connection/creds.json
+   Backend/creds.json
    ```
-   (Ya está en `.gitignore` — nunca se sube al repo. Verifica que siga ahí si algo cambia.)
+   Este archivo ya está incluido en `.gitignore` y no debe subirse al repositorio bajo ninguna circunstancia.
 
 ---
 
-## 2. Compartir el Sheet con la cuenta de servicio
+## 2. Autorización del Sheet para la cuenta de servicio
 
-La cuenta de servicio **no tiene acceso automático** a tu Sheet solo por tener las
-APIs activadas. Debes compartirlo explícitamente:
+La cuenta de servicio no obtiene acceso automático al Sheet por el solo hecho
+de tener las APIs activadas; el acceso debe otorgarse explícitamente:
 
-1. Abre `creds.json` y copia el valor del campo `"client_email"`
-   (se ve así: `zerowaste-reader@tu-proyecto.iam.gserviceaccount.com`)
-2. Abre el Google Sheet → botón **Compartir**
-3. Pega ese correo y dale acceso de **Lector** (es suficiente, ya que el código
-   solo pide scope `readonly`)
+1. Abrir `creds.json` y copiar el valor del campo `"client_email"` (tiene un formato similar a `zerowaste-reader@nombre-proyecto.iam.gserviceaccount.com`).
+2. Abrir el Google Sheet correspondiente y seleccionar **Compartir**.
+3. Ingresar ese correo y otorgar acceso de **Lector** (es suficiente, dado que el código solicita únicamente el scope de solo lectura).
 
-Si te saltas este paso, el error que verás **no** será el 404 que ya resolvimos,
-sino un `403 PERMISSION_DENIED` — son errores distintos, no te confundas si
-aparece más adelante.
+Si este paso se omite, el error resultante no será el 404 documentado en
+versiones anteriores del proyecto, sino un `403 PERMISSION_DENIED`. Son
+errores de naturaleza distinta.
 
 ---
 
-## 3. Configurar el `sheet_id`
+## 3. Configuración de variables del proyecto
 
-1. Abre tu Sheet y copia el ID desde la URL:
-   ```
-   https://docs.google.com/spreadsheets/d/ESTE-ES-EL-ID/edit...
-   ```
-2. **Estado actual (temporal):** actualiza el valor directamente en
-   `Data_connection/initial_read.py`, en el parámetro `sheet_id` de la función
-   `initial_read()`.
-   > 🔧 Pendiente: este valor se moverá a `config.py` como variable global
-   > en la siguiente fase del proyecto. Cuando eso ocurra, actualiza este paso.
+El identificador del Sheet y las categorías válidas para las columnas
+categóricas se gestionan de forma centralizada en `config.py`, ubicado en la
+raíz del proyecto. Al clonar el repositorio, deben actualizarse dos valores:
+
+```python
+SHEET_ID = "ID_DEL_NUEVO_SHEET"
+```
+
+El ID se obtiene desde la URL del Sheet:
+```
+https://docs.google.com/spreadsheets/d/ESTE-ES-EL-ID/edit...
+```
+
+Si las opciones del Google Form difieren de las definidas en
+`01_ESTRUCTURA_GOOGLE_FORM.md`, el diccionario `CATEGORIAS_VALIDAS` en
+`config.py` debe actualizarse para reflejar las categorías reales utilizadas.
+No es necesario modificar ningún otro archivo del proyecto para estos ajustes.
 
 ---
 
-## 4. Instalar dependencias y correr el proyecto
+## 4. Instalación de dependencias y ejecución
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Si `app.py` carga sin errores y ves el dashboard con datos, el setup fue exitoso.
+Si `app.py` se ejecuta sin errores y el dashboard muestra los datos
+correspondientes, el proceso de configuración se completó correctamente.

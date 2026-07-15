@@ -4,28 +4,33 @@ Autor: Equipo ZeroWaste Campus
 Descripción:
     Este módulo contiene las funciones para la limpieza y normalización
     de columnas de texto dentro del dataset. Se encarga de:
-      - Estandarizar categorías predefinidas (por ejemplo: tipo de alimento, motivo de desperdicio)
-      - Limpiar texto libre en campos de observaciones o comentarios
-
-    El propósito es garantizar que las columnas de texto tengan valores coherentes,
-    homogéneos y libres de caracteres no deseados, mejorando así la calidad de los datos
-    para análisis descriptivos y visualizaciones.
+      - Estandarizar categorías predefinidas (tipo de alimento, motivo de
+        desperdicio, destino del excedente), incluyendo columnas de
+        selección múltiple (respuestas separadas por coma).
+      - Limpiar texto libre en campos de observaciones o comentarios.
 
 Dependencias:
     - pandas
     - re
-    - unidecode (para eliminar acentos y caracteres especiales)
-    - config (CATEGORIAS_VALIDAS: diccionario de opciones válidas por columna)
+    - unidecode
+    - config (CATEGORIAS_VALIDAS, COLUMNAS_MULTISELECCION)
 
 Funciones principales:
-    - clean_categorical_options(df): Normaliza valores categóricos conocidos, asignando "otros" a los no válidos.
-    - clean_text(df, col_text): Limpia texto libre, eliminando caracteres especiales y normalizando formato.
+    - clean_categorical_options(df): Normaliza valores categóricos conocidos,
+      con soporte para columnas de selección única y múltiple.
+    - clean_text(df, col_text): Limpia texto libre, eliminando caracteres
+      especiales y normalizando formato.
 """
 
 import pandas as pd
 import re
 from unidecode import unidecode
-from config import CATEGORIAS_VALIDAS
+from config import CATEGORIAS_VALIDAS, COLUMNAS_MULTISELECCION
+
+
+def _normalizar(valor) -> str:
+    """Convierte un valor a texto, minúsculas, sin espacios y sin tildes."""
+    return unidecode(str(valor).strip().lower())
 
 
 # =====================================================
@@ -36,22 +41,25 @@ def clean_categorical_options(df):
     Normaliza las categorías predefinidas en columnas específicas del DataFrame.
 
     Objetivo:
-        Garantizar que los valores dentro de columnas categóricas críticas coincidan
-        con un conjunto de opciones válidas. Si no coinciden, se asigna "otros".
+        Garantizar que los valores dentro de columnas categóricas críticas
+        coincidan con un conjunto de opciones válidas, sin importar tildes,
+        mayúsculas o espacios. Si un valor no coincide, se asigna "otros".
 
     Columnas procesadas:
-        - tipos_de_alimentos_mas_desperdiciados
-        - principal_motivo_de_desperdicio
-        - que_se_hizo_con_el_excedente
+        Definidas dinámicamente en `config.CATEGORIAS_VALIDAS`.
 
-    Las opciones válidas para cada columna se definen en `config.CATEGORIAS_VALIDAS`,
-    de modo que actualizar las categorías (por ejemplo, tras rediseñar el Google Form)
-    no requiere modificar este archivo.
+    Columnas de selección múltiple:
+        Las columnas listadas en `config.COLUMNAS_MULTISELECCION` (por
+        ejemplo, "tipos_de_alimentos_mas_desperdiciados") pueden contener
+        varias respuestas separadas por coma en una sola celda. Cada
+        respuesta se evalúa por separado contra la lista de opciones
+        válidas; las opciones reconocidas se conservan y las no
+        reconocidas se descartan. Si ninguna opción de la celda es
+        válida, el valor final es "otros".
 
-    Mecanismo:
-        1 Convierte el texto a minúsculas y elimina espacios.
-        2 Verifica si el valor pertenece a la lista de opciones válidas.
-        3 Si no pertenece, reemplaza el valor por "otros".
+    Columnas de selección única:
+        Se comparan directamente contra la lista de opciones válidas;
+        si no coinciden, se asigna "otros".
 
     Parámetros:
         df (pd.DataFrame): DataFrame con las columnas categóricas.
@@ -60,13 +68,21 @@ def clean_categorical_options(df):
         pd.DataFrame: DataFrame con categorías normalizadas.
     """
     for col, validos in CATEGORIAS_VALIDAS.items():
-        if col in df.columns:
-            df[col] = (
-                df[col]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                .map(lambda x: x if x in validos else "otros")
+        if col not in df.columns:
+            continue
+
+        validos_normalizados = {_normalizar(v) for v in validos}
+
+        if col in COLUMNAS_MULTISELECCION:
+            def limpiar_celda_multiseleccion(valor):
+                opciones = [_normalizar(o) for o in str(valor).split(",")]
+                opciones_validas = [o for o in opciones if o in validos_normalizados]
+                return ", ".join(opciones_validas) if opciones_validas else "otros"
+
+            df[col] = df[col].map(limpiar_celda_multiseleccion)
+        else:
+            df[col] = df[col].map(
+                lambda x: _normalizar(x) if _normalizar(x) in validos_normalizados else "otros"
             )
 
     return df

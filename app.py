@@ -15,9 +15,9 @@ Responsabilidades:
 Librerías utilizadas:
 ---------------------
 - streamlit: Framework principal para la interfaz y ejecución del dashboard.
-- Data_connection.initial_read: Módulo encargado de la conexión y lectura de datos.
-- Data_connection.cleaning_data: Módulo de procesamiento y limpieza de datos.
-- Visual_page.dashboard: Módulo que genera la visualización interactiva del dashboard.
+- Backend.initial_read: Módulo encargado de la conexión y lectura de datos.
+- Backend.cleaning_data: Módulo de procesamiento y limpieza de datos.
+- Frontend.dashboard: Módulo que genera la visualización interactiva del dashboard.
 """
 
 import streamlit as st
@@ -76,4 +76,4 @@ def main():
 
 # --- EJECUCIÓN PRINCIPAL ---
 if __name__ == "__main__":
-    main()  # ✅ Solo una ejecución principal controlada
+    main()
