@@ -5,7 +5,7 @@ Descripción:
     Este módulo gestiona la conexión y lectura directa de datos desde Google Sheets,
     convirtiendo los registros en un DataFrame de pandas para su posterior limpieza y análisis.
 
-    Es el primer paso del pipeline de datos del proyecto ZeroWaste Campus, 
+    Es el primer paso del pipeline de datos del proyecto ZeroWaste Campus,
     y se encarga de garantizar que la información proveniente del formulario
     (respuestas del Google Form) llegue correctamente estructurada y sin
     errores de formato numérico o de codificación.
@@ -15,6 +15,7 @@ Dependencias:
     - pandas (estructura tabular)
     - gspread (API de Google Sheets)
     - oauth2client.service_account (autenticación segura)
+    - config (SHEET_ID: identificador de la hoja de cálculo de origen)
 
 Funciones principales:
     - initial_read(sheet_id, creds_file) → No se deja creds_file por seguridad
@@ -25,21 +26,27 @@ Puntos clave de esta versión:
     - Lectura en modo texto plano (`get_all_values`), evitando
       errores en decimales por el formato regional (coma/punto).
     - Verificación automática de columnas requeridas.
-    - Eliminación de la columna redundante “Marca temporal”.
+    - Eliminación de la columna redundante "Marca temporal".
+    - El ID de la hoja de cálculo ya no está hardcodeado: se toma desde
+      `config.py`, para que clonar el repositorio y apuntar a un Sheet
+      propio no requiera tocar la lógica de este archivo.
+    - La ruta de `creds.json` se construye una sola vez, siempre relativa
+      a la ubicación de este archivo (dentro de `Backend/`).
 """
 
 import os
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from config import SHEET_ID
 
 
 # =====================================================
 # FUNCIÓN PRINCIPAL: initial_read
 # =====================================================
 def initial_read(
-    sheet_id: str = "1haRa4usWKwNJils1-XddO1WFLYsObIoPkbbcVNZFzTg",
-    creds_file=os.path.join(os.path.dirname(__file__), "creds.json")
+    sheet_id: str = SHEET_ID,
+    creds_file: str = "creds.json"
 ) -> pd.DataFrame:
     """
     Lee la hoja de cálculo de Google Sheets y retorna su contenido en un DataFrame de pandas.
@@ -64,11 +71,11 @@ def initial_read(
     Args:
         sheet_id (str):
             ID único de la hoja de cálculo de Google Sheets.
-            (Por defecto, la hoja oficial de ZeroWaste Campus)
-        
+            (Por defecto, el valor definido en `config.SHEET_ID`)
+
         creds_file (str, opcional):
-            Ruta al archivo de credenciales `creds.json`.
-            Se construye automáticamente desde el directorio actual si no se especifica.
+            Nombre del archivo de credenciales `creds.json`.
+            Se busca siempre dentro de la misma carpeta que este módulo (`Backend/`).
 
     Returns:
         pd.DataFrame:
@@ -104,7 +111,7 @@ def initial_read(
 
     try:
         # 1️ Construir ruta absoluta al archivo de credenciales
-        creds_path = os.path.join(os.path.dirname(__file__), "..", creds_file)
+        creds_path = os.path.join(os.path.dirname(__file__), creds_file)
         creds_path = os.path.abspath(creds_path)
 
         # 2️ Autenticación segura

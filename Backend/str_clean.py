@@ -15,6 +15,7 @@ Dependencias:
     - pandas
     - re
     - unidecode (para eliminar acentos y caracteres especiales)
+    - config (CATEGORIAS_VALIDAS: diccionario de opciones válidas por columna)
 
 Funciones principales:
     - clean_categorical_options(df): Normaliza valores categóricos conocidos, asignando "otros" a los no válidos.
@@ -24,6 +25,7 @@ Funciones principales:
 import pandas as pd
 import re
 from unidecode import unidecode
+from config import CATEGORIAS_VALIDAS
 
 
 # =====================================================
@@ -32,7 +34,7 @@ from unidecode import unidecode
 def clean_categorical_options(df):
     """
     Normaliza las categorías predefinidas en columnas específicas del DataFrame.
-    
+
     Objetivo:
         Garantizar que los valores dentro de columnas categóricas críticas coincidan
         con un conjunto de opciones válidas. Si no coinciden, se asigna "otros".
@@ -41,6 +43,10 @@ def clean_categorical_options(df):
         - tipos_de_alimentos_mas_desperdiciados
         - principal_motivo_de_desperdicio
         - que_se_hizo_con_el_excedente
+
+    Las opciones válidas para cada columna se definen en `config.CATEGORIAS_VALIDAS`,
+    de modo que actualizar las categorías (por ejemplo, tras rediseñar el Google Form)
+    no requiere modificar este archivo.
 
     Mecanismo:
         1 Convierte el texto a minúsculas y elimina espacios.
@@ -53,27 +59,7 @@ def clean_categorical_options(df):
     Retorna:
         pd.DataFrame: DataFrame con categorías normalizadas.
     """
-    options_dict = {
-        "tipos_de_alimentos_mas_desperdiciados": [
-            "frutas",
-            "verduras / ensaladas",
-            "proteina (carne, pollo, pescado, huevo)",
-            "cereales / harinas (arroz, pasta, pan)"
-        ],
-        "principal_motivo_de_desperdicio": [
-            "porciones muy grandes",
-            "baja aceptacion / sabor",
-            "excedente en cocina (sobro sin servir)",
-            "tiempo insuficiente para comer"
-        ],
-        "que_se_hizo_con_el_excedente": [
-            "se desecho totalmente",
-            "se almaceno para consumo posterior",
-            "se distribuyo / dono (ej banco de alimentos, personal de apoyo)"
-        ]
-    }
-
-    for col, validos in options_dict.items():
+    for col, validos in CATEGORIAS_VALIDAS.items():
         if col in df.columns:
             df[col] = (
                 df[col]
@@ -92,7 +78,7 @@ def clean_categorical_options(df):
 def clean_text(df, col_text="comentarios_o_notas_del_dia"):
     """
     Limpia y estandariza el contenido textual de una columna de texto libre.
-    
+
     Objetivo:
         Asegurar que los campos de texto libre (como comentarios o notas)
         estén libres de caracteres especiales, tildes y espacios extra,
