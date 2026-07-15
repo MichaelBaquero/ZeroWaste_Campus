@@ -1,6 +1,47 @@
+"""
+Módulo: numeric_clean.py
+Autor: Equipo ZeroWaste Campus
+Descripción:
+    Este módulo contiene las funciones de limpieza, imputación y detección
+    de valores atípicos para las columnas numéricas del proyecto (enteras y
+    decimales). Resulta de la fusión de los antiguos módulos `Nums_clean.py`
+    y `outliers_clean.py`.
+
+    Se encarga de:
+        - Convertir texto plano a valores numéricos válidos (enteros y floats).
+        - Corregir errores de formato (coma vs punto decimal, separadores de miles).
+        - Tratar valores negativos como inválidos (error de digitación),
+          convirtiéndolos a valor faltante.
+        - Imputar valores faltantes de forma diferenciada según la columna:
+          los conteos de estudiantes se rellenan con la mediana; el
+          desperdicio en kg se deja como valor faltante (NaN) para no
+          inventar datos en la métrica principal del proyecto.
+        - Detectar valores atípicos (outliers) vía rango intercuartílico (IQR),
+          con una corrección diferenciada según el tipo de columna.
+
+Dependencias:
+    - pandas
+
+Funciones principales:
+    - clean_integers(df, cols_enteros): Limpia y convierte columnas enteras.
+    - clean_floats(df, cols_floats): Normaliza valores decimales y corrige formatos.
+    - handle_missing_values(df): Trata negativos como inválidos e imputa faltantes.
+    - handle_outliers(df): Detecta outliers y los corrige o los conserva según la columna.
+
+Nota de diseño (decisión tomada en conjunto con el equipo del proyecto):
+    - `cantidad_aproximada_desperdiciada_kg` NUNCA se rellena automáticamente
+      ni se sobreescribe por ser outlier. Un valor extremo en desperdicio de
+      alimentos suele ser un evento real (ej. catering institucional), no un
+      error — corregirlo silenciosamente destruiría información valiosa.
+      Los cálculos del dashboard (`.sum()`, `.mean()`, `.groupby()`) ignoran
+      los NaN de forma nativa, así que dejarlos sin rellenar no rompe nada.
+    - Los conteos de estudiantes sí se imputan y corrigen automáticamente,
+      ya que un valor absurdo ahí es mucho más probablemente un error de
+      digitación que un evento real.
+"""
+
 import pandas as pd
-import re
-from unidecode import unidecode
+
 
 # =====================================================
 # FUNCIÓN: clean_integers
@@ -72,34 +113,38 @@ def clean_floats(df, cols_floats):
 
 
 # =====================================================
-# FUNCIÓN: fill_missing_with_medians_and_keep_negatives
+# FUNCIÓN: handle_missing_values
 # =====================================================
-def fill_missing_with_medians_and_keep_negatives(df):
+def handle_missing_values(df):
     """
-    Rellena valores faltantes con la mediana, preservando valores negativos válidos.
+    Trata valores negativos como inválidos e imputa faltantes de forma
+    diferenciada según el tipo de columna.
 
     Proceso detallado:
-        1 Separa las filas con valores negativos (para conservarlos sin alteraciones).
-        2 En el resto del DataFrame:
-            - Reemplaza valores nulos (NaN) con la mediana de la columna.
-            - Los enteros se redondean a valores Int64 válidos.
-        3 Se reintroducen los registros negativos al conjunto final.
-        4 Si existe la columna 'fecha_de_registro', ordena el resultado cronológicamente.
+        1 Convierte cualquier valor negativo (en enteros y en kg) a NaN —
+          se asume que un negativo es un error de digitación, no un dato real.
+        2 Conteos de estudiantes (enteros): los NaN se rellenan con la
+          mediana de la columna.
+        3 Desperdicio en kg (float): los NaN se dejan tal cual, sin rellenar.
+          Los cálculos posteriores (.sum(), .mean()) los ignoran de forma
+          nativa, así que no es necesario inventar un valor.
+        4 Ordena el resultado por fecha si la columna existe.
 
     Columnas procesadas:
-        - Enteros:
+        - Enteros (se imputan con mediana):
             • numero_de_estudiantes_atendidos_hoy
             • numero_de_estudiantes_ausentes_en_el_servicio_de_alimentacion
-        - Decimales:
+        - Decimales (se dejan como NaN si faltan):
             • cantidad_aproximada_desperdiciada_kg
 
     Parámetros:
         df (pd.DataFrame): DataFrame con los datos ya numéricamente limpios.
 
     Retorna:
-        pd.DataFrame: DataFrame final con faltantes imputados y negativos conservados.
+        pd.DataFrame: DataFrame con negativos tratados como faltantes y
+        conteos de estudiantes imputados.
     """
-    cols_enteros = [ 
+    cols_enteros = [
         "numero_de_estudiantes_atendidos_hoy",
         "numero_de_estudiantes_ausentes_en_el_servicio_de_alimentacion"
     ]
@@ -107,38 +152,27 @@ def fill_missing_with_medians_and_keep_negatives(df):
 
     df = df.copy()
 
-    # --- 1. Guardar negativos en un DataFrame aparte ---
-    mask_negativos = pd.Series(False, index=df.index)
+    # --- 1. Convertir negativos a NaN (en todas las columnas numéricas) ---
     for col in cols_enteros + cols_floats:
         if col in df.columns:
-            mask_negativos |= df[col] < 0
+            df.loc[df[col] < 0, col] = pd.NA
 
-    df_negativos = df[mask_negativos].copy()
-    df_restantes = df[~mask_negativos].copy()
-
-    # --- 2. Rellenar faltantes en df_restantes ---
+    # --- 2. Imputar solo los conteos de estudiantes con la mediana ---
     for col in cols_enteros:
-        if col in df_restantes.columns:
-            median = df_restantes[col].dropna().median()
+        if col in df.columns:
+            median = df[col].dropna().median()
             if not pd.isna(median):
-                df_restantes[col] = df_restantes[col].fillna(int(round(median))).astype("Int64")
+                df[col] = df[col].fillna(int(round(median))).astype("Int64")
 
-    for col in cols_floats:
-        if col in df_restantes.columns:
-            median = df_restantes[col].dropna().median()
-            if not pd.isna(median):
-                df_restantes[col] = df_restantes[col].fillna(float(median))
-
-    # --- 3. Reincorporar los negativos ---
-    df_final = pd.concat([df_restantes, df_negativos], axis=0)
+    # --- 3. cols_floats (kg) se deja sin rellenar, a propósito ---
 
     # --- 4. Ordenar por fecha si existe ---
-    if "fecha_de_registro" in df_final.columns:
-        df_final = df_final.sort_values(by="fecha_de_registro").reset_index(drop=True)
+    if "fecha_de_registro" in df.columns:
+        df = df.sort_values(by="fecha_de_registro").reset_index(drop=True)
     else:
-        df_final = df_final.reset_index(drop=True)
+        df = df.reset_index(drop=True)
 
-    return df_final
+    return df
 
 
 # =====================================================
@@ -146,61 +180,82 @@ def fill_missing_with_medians_and_keep_negatives(df):
 # =====================================================
 def handle_outliers(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Detecta y corrige outliers solo en columnas numéricas relevantes.
+    Detecta valores atípicos (outliers) vía rango intercuartílico (IQR),
+    con una corrección diferenciada según el tipo de columna.
 
-    Detalles del proceso:
-        1 Identifica columnas objetivo (enteras y decimales) que existan en el DataFrame.
-        2 Calcula el rango intercuartílico (IQR) para cada columna.
-        3 Determina los límites inferior y superior aceptables.
-        4 Crea una columna auxiliar `nombre_columna_outlier` para marcar los registros anómalos.
-        5 Sustituye los valores atípicos por la mediana de la columna correspondiente.
-        6 Mantiene la compatibilidad de tipos de datos (Int64 o float).
+    Criterio de detección (igual para todas las columnas):
+        - Q1 = cuartil 25%, Q3 = cuartil 75%, IQR = Q3 - Q1
+        - Límite inferior = Q1 - 1.5 * IQR
+        - Límite superior = Q3 + 1.5 * IQR
+
+    Comportamiento según columna:
+        - Conteos de estudiantes (enteros):
+            El IQR se calcula sobre toda la columna, y los valores fuera de
+            rango se sustituyen automáticamente por la mediana — un valor
+            absurdo aquí es más probablemente un error de digitación.
+
+        - Desperdicio en kg (float):
+            El IQR se calcula SOLO sobre los días donde sí hubo desperdicio
+            real (`hubo_desperdicio_de_alimentos == True`), ignorando los
+            días en cero. Esto evita que el rango quede aplastado contra
+            cero y que un desperdicio real y modesto se marque como atípico
+            solo por compararse contra muchos ceros legítimos.
+            Los valores fuera de rango se MARCAN en una columna booleana
+            auxiliar (`cantidad_aproximada_desperdiciada_kg_outlier`), pero
+            el valor original NO se sobreescribe — un desperdicio inusualmente
+            alto suele ser un evento real (ej. catering institucional) y no
+            un error, así que se conserva para que el usuario pueda revisarlo.
+            Esta columna auxiliar se usa en el dashboard para mostrar una
+            tarjeta con el conteo de días atípicos.
 
     Parámetros:
         df (pd.DataFrame): DataFrame con los datos numéricos a limpiar.
 
     Retorna:
-        pd.DataFrame: DataFrame con outliers corregidos y marcados.
+        pd.DataFrame: DataFrame con outliers corregidos (enteros) y
+        marcados sin corregir (kg).
     """
-
-    # --- 1. Definir columnas numéricas ---
     cols_enteros = [
         "numero_de_estudiantes_atendidos_hoy",
         "numero_de_estudiantes_ausentes_en_el_servicio_de_alimentacion"
     ]
-    cols_floats = ["cantidad_aproximada_desperdiciada_kg"]
+    col_kg = "cantidad_aproximada_desperdiciada_kg"
+    col_hubo_desperdicio = "hubo_desperdicio_de_alimentos"
 
-    # Filtrar solo columnas existentes en el DataFrame
-    cols_target = [c for c in cols_enteros + cols_floats if c in df.columns]
-
-    # --- 2. Detección y corrección de outliers ---
-    for col in cols_target:
-        # Cálculo de límites por IQR
+    # --- 1. Conteos de estudiantes: detectar y corregir (comportamiento original) ---
+    for col in [c for c in cols_enteros if c in df.columns]:
         q1 = df[col].quantile(0.25)
         q3 = df[col].quantile(0.75)
         iqr = q3 - q1
         lower = q1 - 1.5 * iqr
         upper = q3 + 1.5 * iqr
 
-        # Columna bandera para registrar outliers detectados
-        flag_col = f"{col}_outlier"
-        df[flag_col] = False
-
-        # Identificar filas con valores fuera del rango aceptado
         mask_outliers = (df[col] < lower) | (df[col] > upper)
-        df.loc[mask_outliers, flag_col] = True
-
-        # Calcular mediana (ignorando NaN)
         median = df[col].median(skipna=True)
 
-        # --- 3. Sustitución de outliers ---
-        if pd.api.types.is_integer_dtype(df[col]):
-            # Asegurar compatibilidad con tipo Int64 nullable
-            if df[col].dtype != "Int64":
-                df[col] = df[col].astype("Int64")
-            df.loc[mask_outliers, col] = int(median) if not pd.isna(median) else pd.NA
+        if df[col].dtype != "Int64":
+            df[col] = df[col].astype("Int64")
+        df.loc[mask_outliers, col] = int(median) if not pd.isna(median) else pd.NA
+
+    # --- 2. Desperdicio en kg: detectar sobre el subconjunto con desperdicio real, sin corregir ---
+    if col_kg in df.columns:
+        if col_hubo_desperdicio in df.columns:
+            subset = df.loc[df[col_hubo_desperdicio] == True, col_kg]
         else:
-            # En columnas flotantes, asignar directamente la mediana
-            df.loc[mask_outliers, col] = median
+            # Salvaguarda si la columna booleana no está disponible en este punto del pipeline
+            subset = df.loc[df[col_kg] > 0, col_kg]
+
+        flag_col = f"{col_kg}_outlier"
+        df[flag_col] = False
+
+        if not subset.empty:
+            q1 = subset.quantile(0.25)
+            q3 = subset.quantile(0.75)
+            iqr = q3 - q1
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+
+            mask_outliers = (df[col_kg] < lower) | (df[col_kg] > upper)
+            df.loc[mask_outliers, flag_col] = True
 
     return df
