@@ -1,179 +1,124 @@
 """
 Módulo: theme_config.py
-Define la configuración visual del dashboard de Streamlit para ZeroWaste Campus.
-Forza el uso de un tema claro, establece la paleta de colores institucionales y
-aplica un estilo visual coherente en todos los componentes del dashboard.
-
-Responsabilidades:
--------------------
-1. Configurar colores, fuentes y estilos base para el tema claro.
-2. Ocultar los elementos no deseados de la interfaz nativa de Streamlit (menú, footer, toolbar).
-3. Aplicar estilos CSS personalizados a tarjetas KPI, tablas, gráficos, botones y sidebar.
-4. Retornar la configuración del tema junto con la hoja de estilo CSS para su carga dinámica.
-
-Librerías utilizadas:
----------------------
-- streamlit: para integración del tema dentro del entorno del dashboard.
+Descripción:
+    Configuración visual del dashboard ZeroWaste Campus. Tema claro fijo
+    (no hay alternancia claro/oscuro): los widgets nativos de Streamlit se
+    fijan en modo claro vía .streamlit/config.toml, y este módulo aplica
+    la paleta institucional sobre ese mismo modo para evitar conflictos
+    entre el tema nativo y el CSS personalizado.
 """
 
 import streamlit as st
 
-def load_theme():
+PALETA_CLARA = {
+    "background": "#FFFFFF",
+    "card_bg": "#FAFAFA",
+    "text_primary": "#212121",
+    "text_secondary": "#424242",
+    "primary": "#1B5E20",
+    "primary_light": "#4CAF50",
+    "secondary": "#FFC107",
+    "alert": "#E65100",
+    "border": "#E0E0E0",
+    "plotly_template": "plotly_white",
+}
+
+
+def load_theme(mode: str = "light"):
     """
-    Carga la configuración visual del dashboard en modo claro.
+    Carga la configuración visual del dashboard.
+
+    Args:
+        mode (str): reservado para compatibilidad futura; actualmente
+            solo existe la paleta clara y el parámetro se ignora.
 
     Retorna:
-        tuple:
-            - theme (dict): Diccionario con la definición de colores y tipografías.
-            - css (str): Cadena de estilos CSS personalizada que se inyecta en la aplicación.
-
-    Detalles:
-    ----------
-    - Se fuerza el modo claro (fondo blanco, texto oscuro).
-    - Se aplican colores institucionales:
-        * Verde oscuro (#1B5E20): Color principal.
-        * Verde claro (#4CAF50): Acento secundario.
-        * Amarillo (#FFC107): Indicadores visuales.
-    - Oculta los menús, barras superiores e íconos de Streamlit para lograr
-      una apariencia limpia y profesional.
-    - Define el estilo visual de componentes clave: KPI cards, tablas, botones, sidebar y footer.
+        tuple: (colors: dict, css: str)
     """
+    c = PALETA_CLARA
 
-    theme = {
-        "colors": {
-            "primary": "#1B5E20",        # Verde institucional oscuro
-            "primary_light": "#4CAF50",  # Verde brillante
-            "secondary": "#FFC107",      # Amarillo visible
-            "background": "#FFFFFF",     # Fondo blanco
-            "sidebar_bg": "#F1F8E9",     # Verde muy claro para diferenciar el sidebar
-            "card_bg": "#FAFAFA",        # Fondo de tarjetas
-            "text_primary": "#212121",   # Negro suave
-            "text_secondary": "#424242", # Gris oscuro
-            "accent": "#388E3C",         # Verde intermedio
-        },
-        "fonts": {
-            "heading": "'Poppins', sans-serif",
-            "body": "'Roboto', sans-serif",
-        }
-    }
-
-    css = """
+    css = f"""
     <style>
-    /* --- Tipografías principales --- */
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Roboto:wght@300;400;500&display=swap');
 
-    /* --- Forzar modo claro y tipografía base --- */
-    html, body, [class*="css"] {
-        background-color: #FFFFFF !important;
-        color: #212121 !important;
+    html, body, [class*="css"], .stApp {{
+        background-color: {c["background"]} !important;
+        color: {c["text_primary"]} !important;
         font-family: 'Roboto', sans-serif !important;
-    }
+    }}
 
     /* --- Ocultar elementos nativos de Streamlit --- */
-    header[data-testid="stHeader"], div[data-testid="stToolbar"], footer, 
-    [data-testid="stStatusWidget"], [data-testid="stDecoration"] {
+    #MainMenu, header[data-testid="stHeader"], div[data-testid="stToolbar"],
+    div[data-testid*="Toolbar"], footer, [data-testid="stStatusWidget"],
+    [data-testid="stDecoration"], [data-testid="collapsedControl"] {{
         visibility: hidden !important;
         height: 0 !important;
         display: none !important;
-    }
-    button[kind="icon"], [data-testid="stBaseButton-header"] {
+    }}
+    button[kind="icon"], [data-testid*="BaseButton-header"] {{
         visibility: hidden !important;
         display: none !important;
-    }
+    }}
+    section[data-testid="stSidebar"] {{
+        display: none !important;
+    }}
 
-    /* --- Sidebar --- */
-    section[data-testid="stSidebar"] {
-        background-color: #F1F8E9 !important;
-        color: #212121 !important;
-        border-right: 1px solid #C8E6C9 !important;
-    }
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3 {
-        color: #1B5E20 !important;
+    /* --- Encabezados --- */
+    h1, h2, h3, h4, h5 {{
         font-family: 'Poppins', sans-serif !important;
+        color: {c["primary"]} !important;
         font-weight: 600 !important;
-    }
-
-    /* --- Encabezados principales --- */
-    h1, h2, h3, h4, h5 {
-        font-family: 'Poppins', sans-serif !important;
-        color: #1B5E20 !important;
-        font-weight: 600 !important;
-    }
+    }}
 
     /* --- Tarjetas de KPI --- */
-    .kpi-card {
-        background-color: #FAFAFA !important;
-        border-left: 6px solid #1B5E20 !important;
+    .kpi-card {{
+        background-color: {c["card_bg"]} !important;
+        border: 1px solid {c["border"]} !important;
+        border-left: 6px solid {c["primary"]} !important;
         border-radius: 12px !important;
         padding: 1.2rem !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
         margin-bottom: 15px !important;
-    }
-    .kpi-value {
-        font-size: 30px !important;
+        min-height: 110px;
+    }}
+    .kpi-card.alert {{
+        border-left: 6px solid {c["alert"]} !important;
+    }}
+    .kpi-value {{
+        font-size: 28px !important;
         font-weight: 600 !important;
-        color: #1B5E20 !important;
+        color: {c["primary"]} !important;
         font-family: 'Poppins', sans-serif !important;
-    }
-    .kpi-label {
-        color: #424242 !important;
-        font-size: 15px !important;
-        font-weight: 500 !important;
-    }
-
-    /* --- Tablas y DataFrames --- */
-    .stDataFrame, .stTable {
-        background-color: #FFFFFF !important;
-        color: #212121 !important;
-        border-radius: 8px !important;
-        border: 1px solid #E0E0E0 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-    }
-
-    /* --- Gráficos --- */
-    .chart-container {
-        background-color: #FFFFFF !important;
-        border: 1px solid #E0E0E0 !important;
-        border-radius: 12px !important;
-        padding: 1rem !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
-        margin-bottom: 20px !important;
-    }
-
-    /* --- Botones --- */
-    .stButton>button {
-        background-color: #1B5E20 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 10px 22px !important;
-        font-weight: 500 !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    .stButton>button:hover {
-        background-color: #388E3C !important;
-        transform: translateY(-2px);
-    }
-
-    /* --- Footer --- */
-    .footer {
-        border-top: 2px solid #1B5E20 !important;
-        padding: 15px 0 !important;
-        text-align: center !important;
-        color: #424242 !important;
+    }}
+    .kpi-card.alert .kpi-value {{
+        color: {c["alert"]} !important;
+    }}
+    .kpi-label {{
+        color: {c["text_secondary"]} !important;
         font-size: 14px !important;
-        font-family: 'Roboto', sans-serif !important;
-        margin-top: 40px !important;
-    }
+        font-weight: 500 !important;
+    }}
 
-    /* --- Espaciado general del layout --- */
-    .block-container {
+    /* --- Expander --- */
+    div[data-testid="stExpander"] {{
+        background-color: {c["card_bg"]} !important;
+        border: 1px solid {c["border"]} !important;
+        border-radius: 8px !important;
+    }}
+
+    /* --- Tabla de datos --- */
+    .stDataFrame, .stTable, div[data-testid="stDataFrame"] {{
+        background-color: {c["card_bg"]} !important;
+        color: {c["text_primary"]} !important;
+        border-radius: 8px !important;
+        border: 1px solid {c["border"]} !important;
+    }}
+
+    /* --- Espaciado general --- */
+    .block-container {{
         padding-top: 1rem !important;
         padding-bottom: 2rem !important;
-    }
+    }}
     </style>
     """
 
-    return theme, css
+    return c, css

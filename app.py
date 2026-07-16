@@ -41,16 +41,10 @@ def load_clean_data():
     Este proceso se almacena en caché para evitar recargas innecesarias
     durante la sesión, optimizando el rendimiento de la aplicación.
 
-    Flujo:
-    -------
-    1. Llama al método `initial_read()` para obtener los datos crudos desde Google Sheets.
-    2. Aplica la función `cleaner_data()` para normalizar, validar y limpiar los datos.
-    3. Retorna el DataFrame final, listo para visualización.
-
     Retorna:
         DataFrame: Datos completamente limpios y listos para análisis.
     """
-    df = read_data()   # Lectura directa desde Google Sheets usando creds.json
+    df = read_data()
     df = clean_data(df)
     return df
 
@@ -58,22 +52,10 @@ def load_clean_data():
 def main():
     """
     Punto de entrada principal de la aplicación Streamlit.
-
-    Funciones:
-    -----------
-    - Muestra un mensaje lateral con instrucciones de navegación.
-    - Carga los datos limpios mediante `load_clean_data()`.
-    - Llama a `run_dashboard()` para renderizar el dashboard completo con métricas y gráficos.
     """
-    st.sidebar.success("Usa los filtros para explorar los datos 🔍")
-
-    # --- Cargar datos limpios ---
     df = load_clean_data()
-
-    # --- Ejecutar dashboard principal ---
     run_dashboard(df, title="ZeroWaste Campus Dashboard")
 
 
-# --- EJECUCIÓN PRINCIPAL ---
 if __name__ == "__main__":
     main()

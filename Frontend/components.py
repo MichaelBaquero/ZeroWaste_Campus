@@ -1,150 +1,103 @@
 """
 Módulo: components.py
-Autor: Equipo ZeroWaste Campus
 Descripción:
-    Este módulo define los componentes visuales reutilizables del dashboard de Streamlit,
-    proporcionando consistencia estética y modularidad en la interfaz de usuario.
+    Componentes visuales reutilizables del dashboard: encabezado, tarjetas
+    KPI y pie de página.
 
-    Contiene tres secciones principales:
-        1 Encabezado (header_section)
-        2 Tarjetas KPI (kpi_card)
-        3 Pie de página (footer)
-
-    Estos elementos son llamados directamente desde el módulo `dashboard.py`
-    y pueden ser reutilizados en otras interfaces o versiones del proyecto.
-
-Dependencias:
-    - os → para verificar la existencia de rutas de imagen (logo)
-    - streamlit → para la renderización interactiva y los elementos visuales
-
-Funciones principales:
-    - header_section(): Renderiza el encabezado con logo y título principal.
-    - kpi_card(): Crea una tarjeta de indicador clave de desempeño (KPI).
-    - footer(): Muestra un pie de página unificado para todas las páginas.
-
-Importancia:
-    Este módulo separa la capa visual (presentación) de la lógica de negocio
-    (procesamiento de datos), manteniendo un código más limpio, escalable
-    y fácil de mantener.
+Notas de diseño:
+    - El logo se incrusta como HTML/base64 (no st.image), para controlar
+      tamaño y alineación con precisión y evitar el contenedor adicional
+      que Streamlit agrega por defecto a las imágenes (padding, ícono de
+      pantalla completa al pasar el mouse).
+    - El logo tiene prioridad visual sobre el título (130px vs. tipografía
+      reducida del encabezado) para que no se pierda en la interfaz.
 """
 
 import os
+import base64
 import streamlit as st
 
+_ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# =====================================================
-# ENCABEZADO PRINCIPAL
-# =====================================================
-def header_section(logo_path="Visual_page/assets/logo_wzc.png"):
+
+def _logo_a_base64(path: str) -> str:
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+
+def header_section(logo_filename="assets/logo_wzc.png"):
     """
-    Renderiza el encabezado principal del dashboard con el logo y título del proyecto.
-
-    Este encabezado se muestra en la parte superior del dashboard e incluye:
-        - El logo institucional (ajustable por tamaño o ruta)
-        - El título principal "Zero Waste Campus"
-        - Un subtítulo descriptivo del propósito de la plataforma
+    Renderiza el encabezado principal del dashboard con el logo como
+    elemento protagonista y el título en un tamaño secundario.
 
     Args:
-        logo_path (str): Ruta del logo institucional (por defecto: 'Visual_page/assets/logo_wzc.png').
+        logo_filename (str): Ruta relativa a este módulo (Frontend/) donde
+            se encuentra el logo institucional.
 
     Notas:
-        - Si el archivo del logo no existe, se muestra un cuadro verde con las siglas "ZWC".
-        - El ancho del logo puede ajustarse con la variable `logo_width_px` para escalar su tamaño.
-        - El diseño utiliza columnas de Streamlit para alinear el logo y el texto lateralmente.
+        - Si el archivo del logo no existe, se muestra un cuadro verde
+          con las siglas "ZWC" como respaldo visual.
     """
-    logo_width_px = 1000  # Ancho del logo en píxeles (ajustable)
+    logo_path = os.path.join(_ASSETS_DIR, logo_filename)
 
-    # Columnas: [logo] [espacio] [título]
-    col_logo, col_space, col_title = st.columns([1, 0.2, 6])
-
-    with col_logo:
-        if os.path.exists(logo_path):
-            st.image(logo_path, width=logo_width_px)
-        else:
-            # Placeholder si no hay logo disponible
-            st.markdown("""
-                <div style="width:90px; height:90px; background:#4CAF50;
-                            border-radius:10px; display:flex; align-items:center;
-                            justify-content:center; color:white; font-weight:bold; font-size:24px;">
-                    ZWC
-                </div>
-            """, unsafe_allow_html=True)
-
-    # Columna de título alineada visualmente
-    with col_space:
-        st.write("")
-
-    with col_title:
-        st.markdown(
-            "<h1 style='color:#1B5E20; margin:0; line-height:1; font-size:48px; font-family: Poppins, sans-serif;'>Zero Waste Campus</h1>",
-            unsafe_allow_html=True
+    if os.path.exists(logo_path):
+        logo_b64 = _logo_a_base64(logo_path)
+        logo_html = (
+            f'<img src="data:image/png;base64,{logo_b64}" '
+            f'style="width:130px; height:130px; object-fit:contain; border-radius:16px;" />'
         )
-        st.markdown(
-            "<p style='color:#666666; margin-top:6px; margin-bottom:0;'>Monitoreo del desperdicio alimentario 🍽️♻️</p>",
-            unsafe_allow_html=True
-        )
+    else:
+        logo_html = """
+            <div style="width:130px;height:130px;background:#4CAF50;border-radius:16px;
+                        display:flex;align-items:center;justify-content:center;
+                        color:white;font-weight:bold;font-size:32px;">ZWC</div>
+        """
 
-    # Línea divisoria inferior
+    st.markdown(f"""
+        <div style="display:flex; align-items:center; gap:24px; margin-bottom:0.5rem;">
+            {logo_html}
+            <div>
+                <h1 style="margin:0; line-height:1; font-size:30px; font-family: Poppins, sans-serif; font-weight:500;">
+                    Zero Waste Campus
+                </h1>
+                <p style="opacity:0.7; margin-top:6px; margin-bottom:0; font-size:14px;">
+                    Monitoreo del desperdicio alimentario 🍽️♻️
+                </p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
 
 
-# =====================================================
-# TARJETAS DE INDICADORES (KPIs)
-# =====================================================
-def kpi_card(title, value, color="#2E7D32", col=None):
+def kpi_card(title, value, color="#2E7D32", col=None, alert=False):
     """
-    Renderiza una tarjeta individual de KPI (Indicador Clave de Desempeño).
-
-    Las tarjetas KPI presentan información resumida en formato visual atractivo,
-    con color de acento, valor numérico y texto descriptivo.
+    Renderiza una tarjeta individual de KPI.
 
     Args:
-        title (str): Título o descripción del indicador.
-        value (str | float | int): Valor principal a mostrar (por ejemplo: "120 kg").
-        color (str): Color hexadecimal del título (por defecto: verde institucional).
-        col (st.column, opcional): Columna de Streamlit donde se renderizará la tarjeta.
-
-    Diseño:
-        - Fondo blanco con sombra suave.
-        - Borde redondeado.
-        - Fuente seminegrita y color de acento configurable.
+        title (str): Título del indicador.
+        value (str | float | int): Valor principal a mostrar.
+        color (str): Color hexadecimal del título.
+        col (st.column, opcional): Columna donde se renderiza.
+        alert (bool): Si es True, aplica el estilo de alerta (borde naranja).
     """
+    css_class = "kpi-card alert" if alert else "kpi-card"
     card_html = f"""
-    <div class="kpi-card" style="
-        background-color:white;
-        padding:1rem;
-        border-radius:12px;
-        box-shadow:0 4px 6px rgba(0,0,0,0.1);
-        text-align:center;
-    ">
-        <div class="kpi-label" style="color:{color}; font-weight:600; margin-bottom:8px;">{title}</div>
-        <div class="kpi-value" style="color:#333; font-size:22px; font-weight:700;">{value}</div>
+    <div class="{css_class}">
+        <div class="kpi-label" style="color:{color};">{title}</div>
+        <div class="kpi-value">{value}</div>
     </div>
     """
-
-    # Mostrar tarjeta en columna o en layout general
-    if col:
-        with col:
-            st.markdown(card_html, unsafe_allow_html=True)
-    else:
+    target = col if col else st
+    with (target if col else st.container()):
         st.markdown(card_html, unsafe_allow_html=True)
 
 
-# =====================================================
-# PIE DE PÁGINA
-# =====================================================
 def footer():
-    """
-    Muestra un pie de página estándar en la parte inferior del dashboard.
-
-    Incluye:
-        - Línea divisoria superior
-        - Créditos institucionales
-        - Año de copyright
-    """
+    """Muestra el pie de página institucional."""
     st.markdown("""
         <hr style="margin-top:30px;margin-bottom:10px;">
         <p style="text-align:center;color:#616161;font-size:13px;">
-        ZeroWaste Campus — Fundación Universitaria Cafam | © 2025
+        ZeroWaste Campus — Fundación Universitaria Cafam | © 2026
         </p>
     """, unsafe_allow_html=True)
