@@ -74,10 +74,15 @@ def clean_categorical_options(df):
         validos_normalizados = {_normalizar(v) for v in validos}
 
         if col in COLUMNAS_MULTISELECCION:
+            opciones_ordenadas = sorted(validos_normalizados, key=len, reverse=True)
             def limpiar_celda_multiseleccion(valor):
-                opciones = [_normalizar(o) for o in str(valor).split(",")]
-                opciones_validas = [o for o in opciones if o in validos_normalizados]
-                return ", ".join(opciones_validas) if opciones_validas else "otros"
+                texto = _normalizar(valor)
+                encontrados = []
+                for opcion in opciones_ordenadas:
+                    if opcion in texto:
+                        encontrados.append(opcion)
+                        texto = texto.replace(opcion, "", 1)
+                return ", ".join(encontrados) if encontrados else "otros"
 
             df[col] = df[col].map(limpiar_celda_multiseleccion)
         else:
